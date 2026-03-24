@@ -1,5 +1,5 @@
 [project]
-name = "robotsim"
+name = "robosim"
 version = "0.1.0"
 description = "2D robot simulator with Pymunk + Pygame"
 readme = "README.md"

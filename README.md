@@ -1,6 +1,6 @@
-# RobotSim
+# robosim
 
-RobotSim is a 2D top-down differential-drive robot simulator built with Python, Pymunk, and Pygame.  
+robosim is a 2D top-down differential-drive robot simulator built with Python, Pymunk, and Pygame.  
 The project is designed so user code focuses on decision logic (`sense -> think -> act`) while the simulator handles physics, collisions, sensor modeling, and rendering.
 
 ## What This Project Does
@@ -42,7 +42,7 @@ uv run pytest
 
 ## User Code Contract
 
-Write your autonomous logic in [`user_script.py`](RobotSim/user_script.py):
+Write your autonomous logic in [`user_script.py`](user_script.py):
 
 - `run(sensors: SensorPacket) -> DriveCommand`
 - Called every simulation tick
@@ -52,19 +52,19 @@ Write your autonomous logic in [`user_script.py`](RobotSim/user_script.py):
 
 The simulator uses these modules:
 
-- [`main.py`](RobotSim/src/robosim/main.py): App entry point and top-level loop orchestration
-- [`config.py`](RobotSim/src/robosim/config.py): Central dataclass-based configuration
-- [`types.py`](RobotSim/src/robosim/types.py): Public API types (`SensorPacket`, `DriveCommand`)
-- [`physics.py`](RobotSim/src/robosim/physics.py): Pymunk world setup and force/torque application
-- [`robot.py`](RobotSim/src/robosim/robot.py): Robot drivetrain and state updates
-- [`sensors.py`](RobotSim/src/robosim/sensors.py): Encoder/IMU/rangefinder simulation and noise pipeline
-- [`renderer.py`](RobotSim/src/robosim/renderer.py): Pygame rendering and telemetry HUD
-- [`field.py`](RobotSim/src/robosim/field.py): Arena layout and wall geometry
+- [`main.py`](src/robosim/main.py): App entry point and top-level loop orchestration
+- [`config.py`](src/robosim/config.py): Central dataclass-based configuration
+- [`types.py`](src/robosim/types.py): Public API types (`SensorPacket`, `DriveCommand`)
+- [`physics.py`](src/robosim/physics.py): Pymunk world setup and force/torque application
+- [`robot.py`](src/robosim/robot.py): Robot drivetrain and state updates
+- [`sensors.py`](src/robosim/sensors.py): Encoder/IMU/rangefinder simulation and noise pipeline
+- [`renderer.py`](src/robosim/renderer.py): Pygame rendering and telemetry HUD
+- [`field.py`](src/robosim/field.py): Arena layout and wall geometry
 
 ## Project Layout
 
 ```text
-RobotSim/
+robosim/
 ├── src/robosim/
 │   ├── main.py
 │   ├── config.py
