@@ -18,27 +18,35 @@ The project is designed so user code focuses on decision logic (`sense -> think 
 
 ## Current Status
 
-This repository currently contains an initial scaffold and starter modules.  
-The simulation loop and full physics/sensor systems are the next implementation step.
+The simulator has a working physics engine, differential-drive robot, and a live Pygame window with manual and autonomous driving modes.
 
 ## Quick Start
 
 ```bash
-# 1) Create virtual environment
-uv venv
+# 1) Create virtual environment and install dependencies
+uv venv && source .venv/bin/activate && uv sync
 
-# 2) Activate it
-source .venv/bin/activate
-
-# 3) Install dependencies from pyproject.toml
-uv sync
-
-# 4) Run simulator entry point
+# 2) Run the simulator
 uv run robosim
 
-# 5) Run tests
+# 3) Run tests
 uv run pytest
 ```
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `W` / `Up` | Drive forward |
+| `S` / `Down` | Drive backward |
+| `A` / `Left` | Turn left |
+| `D` / `Right` | Turn right |
+| `Tab` | Toggle between MANUAL and AUTO mode |
+| `Esc` | Quit |
+
+**MANUAL mode** (default): You drive the robot with the keyboard.
+
+**AUTO mode**: The simulator calls `user_script.run(sensors)` each frame. The robot is controlled entirely by your code.
 
 ## User Code Contract
 
