@@ -63,6 +63,7 @@ class Renderer:
         sim_time: float,
         error_msg: str = "",
         rangefinders: RangefinderArray | None = None,
+        noise_preset: str = "ideal",
     ) -> None:
         self.screen.fill(COL_BG)
         self._draw_grid()
@@ -70,7 +71,7 @@ class Renderer:
         if rangefinders is not None:
             self._draw_rangefinder_rays(rangefinders)
         self._draw_robot(robot)
-        self._draw_sidebar(sensors, cmd, mode, sim_time, error_msg)
+        self._draw_sidebar(sensors, cmd, mode, sim_time, error_msg, noise_preset)
         pygame.display.flip()
 
     def tick(self, fps: int) -> None:
@@ -157,6 +158,7 @@ class Renderer:
         mode: Mode,
         sim_time: float,
         error_msg: str,
+        noise_preset: str = "ideal",
     ) -> None:
         arena_px = self.arena_cfg.arena_size_px
         sidebar_rect = pygame.Rect(arena_px, 0, self.SIDEBAR_WIDTH, self.window_h)
@@ -174,7 +176,8 @@ class Renderer:
 
         # Mode
         mode_col = COL_MODE_MANUAL if mode is Mode.MANUAL else COL_MODE_AUTO
-        text(f"Mode: {mode.name}", mode_col)
+        text(f"Mode:  {mode.name}", mode_col)
+        text(f"Noise: {noise_preset.upper()}")
         y += 6
 
         # Time

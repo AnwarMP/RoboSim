@@ -7,6 +7,18 @@ class NoiseConfig:
     bias_drift_sigma: float = 0.0
 
 
+# -- Noise presets -----------------------------------------------------------
+NOISE_IDEAL = NoiseConfig()  # zero noise (default)
+NOISE_REALISTIC = NoiseConfig(gaussian_sigma=0.01, bias_drift_sigma=0.001)
+NOISE_STRESS = NoiseConfig(gaussian_sigma=0.05, bias_drift_sigma=0.005)
+
+NOISE_PRESETS: dict[str, NoiseConfig] = {
+    "ideal": NOISE_IDEAL,
+    "realistic": NOISE_REALISTIC,
+    "stress": NOISE_STRESS,
+}
+
+
 @dataclass(frozen=True)
 class ArenaConfig:
     tile_count: int = 9
