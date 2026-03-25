@@ -6,7 +6,7 @@ import math
 
 from pymunk import Vec2d
 
-from robosim.config import PhysicsConfig
+from robosim.config import NoiseConfig, PhysicsConfig
 from robosim.sensors import EncoderPair, WheelEncoder
 
 
@@ -153,3 +153,44 @@ class TestEncoderPair:
         pair.reset()
         assert pair.enc_left == 0
         assert pair.enc_right == 0
+
+
+class TestEncoderNoise:
+    """Tests that encoder noise pipeline is wired correctly."""
+
+    def test_zero_noise_gives_deterministic_ticks(self) -> None:
+        noise = NoiseConfig(gaussian_sigma=0.0, bias_drift_sigma=0.0)
+        enc = WheelEncoder(noise_cfg=noise)
+        dt = 1.0 / 60.0
+        for _ in range(60):
+            enc.update(100.0, dt)
+        # With zero noise, result should match no-noise encoder exactly
+        enc_ref = WheelEncoder()
+        for _ in range(60):
+            enc_ref.update(100.0, dt)
+        assert enc.ticks == enc_ref.ticks
+
+    def test_high_noise_causes_divergence(self) -> None:
+        """With heavy noise, multiple runs should produce different tick counts."""
+        noise = NoiseConfig(gaussian_sigma=0.5, bias_drift_sigma=0.1)
+        results = []
+        for _ in range(5):
+            enc = WheelEncoder(noise_cfg=noise)
+            dt = 1.0 / 60.0
+            for _ in range(120):
+                enc.update(100.0, dt)
+            results.append(enc.ticks)
+        # Not all runs should produce the exact same value
+        assert len(set(results)) > 1
+
+    def test_encoder_pair_accepts_noise_config(self) -> None:
+        cfg = PhysicsConfig()
+        noise = NoiseConfig(gaussian_sigma=0.01, bias_drift_sigma=0.001)
+        pair = EncoderPair(cfg, noise_cfg=noise)
+        dt = cfg.timestep
+        vel = Vec2d(100.0, 0.0)
+        for _ in range(60):
+            pair.update(vel, 0.0, 0.0, dt)
+        # Should accumulate ticks (exact value affected by noise)
+        assert pair.enc_left != 0
+        assert pair.enc_right != 0

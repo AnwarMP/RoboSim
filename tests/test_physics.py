@@ -1,8 +1,10 @@
 """Tests for PhysicsWorld (physics.py) — space setup, robot body, stepping."""
 
+import math
+
 import pymunk
 
-from robosim.config import COLLISION_ROBOT, PhysicsConfig, SimulatorConfig
+from robosim.config import COLLISION_ROBOT, PhysicsConfig, SimulatorConfig, StartConfig
 from robosim.physics import PhysicsWorld
 
 
@@ -49,6 +51,24 @@ class TestRobotBody:
     def test_robot_is_dynamic(self) -> None:
         world = _make_world()
         assert world.robot_body.body_type == pymunk.Body.DYNAMIC
+
+    def test_custom_start_position(self) -> None:
+        cfg = SimulatorConfig(start=StartConfig(x=100.0, y=200.0))
+        world = _make_world(cfg)
+        assert world.robot_body.position.x == 100.0
+        assert world.robot_body.position.y == 200.0
+
+    def test_custom_start_heading(self) -> None:
+        cfg = SimulatorConfig(start=StartConfig(heading_deg=90.0))
+        world = _make_world(cfg)
+        assert abs(world.robot_body.angle - math.radians(90.0)) < 1e-9
+
+    def test_default_start_is_arena_center(self) -> None:
+        world = _make_world()
+        center = world.arena_cfg.arena_size_px / 2.0
+        assert world.robot_body.position.x == center
+        assert world.robot_body.position.y == center
+        assert world.robot_body.angle == 0.0
 
 
 class TestTorqueGain:
