@@ -96,21 +96,32 @@ class Renderer:
     # -- Rangefinder rays ----------------------------------------------------
 
     def _draw_rangefinder_rays(self, rangefinders: RangefinderArray) -> None:
+        arena_px = self.arena_cfg.arena_size_px
+        clip_rect = pygame.Rect(0, 0, arena_px, arena_px)
+        self.screen.set_clip(clip_rect)
+
         colours = [COL_RAY_FRONT, COL_RAY_RIGHT, COL_RAY_BACK, COL_RAY_LEFT]
         sensors = [rangefinders.front, rangefinders.right, rangefinders.back, rangefinders.left]
         for sensor, colour in zip(sensors, colours):
             start = (int(sensor.ray_start.x), int(sensor.ray_start.y))
-            end = (int(sensor.ray_end.x), int(sensor.ray_end.y))
+
+            # Compute the actual endpoint: hit point if wall detected, else max range
+            dist_px = sensor.distance_cm * PX_PER_CM
+            ray_vec = sensor.ray_end - sensor.ray_start
+            ray_len = ray_vec.length
+            if ray_len > 0:
+                end_point = sensor.ray_start + ray_vec * (dist_px / ray_len)
+                end = (int(end_point.x), int(end_point.y))
+            else:
+                end = start
+
             pygame.draw.line(self.screen, colour, start, end, 1)
-            # Draw a small dot at the hit point
+
+            # Draw a small dot at the hit point when a wall is detected
             if sensor.distance_cm < MAX_RANGE_CM:
-                # Compute hit point along the ray
-                dist_px = sensor.distance_cm * PX_PER_CM
-                ray_vec = sensor.ray_end - sensor.ray_start
-                ray_len = ray_vec.length
-                if ray_len > 0:
-                    hit = sensor.ray_start + ray_vec * (dist_px / ray_len)
-                    pygame.draw.circle(self.screen, colour, (int(hit.x), int(hit.y)), 3)
+                pygame.draw.circle(self.screen, colour, end, 3)
+
+        self.screen.set_clip(None)
 
     # -- Robot drawing -------------------------------------------------------
 
