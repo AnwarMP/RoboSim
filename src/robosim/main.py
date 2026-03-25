@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib
 import sys
 from pathlib import Path
 
 import pygame
 
-from robosim.config import SimulatorConfig
+from robosim.config import NOISE_PRESETS, SimulatorConfig
 from robosim.physics import PhysicsWorld
 from robosim.renderer import Mode, Renderer
 from robosim.robot import Robot
@@ -84,8 +85,26 @@ def _build_sensor_packet(
     )
 
 
-def main() -> None:
-    config = SimulatorConfig()
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="robosim — 2D robot simulator")
+    parser.add_argument(
+        "--noise",
+        choices=list(NOISE_PRESETS.keys()),
+        default="ideal",
+        help="Noise preset: ideal (default, zero noise), realistic, or stress",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = _parse_args(argv)
+    noise_cfg = NOISE_PRESETS[args.noise]
+    config = SimulatorConfig(
+        encoder_noise=noise_cfg,
+        imu_noise=noise_cfg,
+        range_noise=noise_cfg,
+    )
 
     pygame.init()
     renderer = Renderer(config)
@@ -149,7 +168,10 @@ def main() -> None:
 
         # -- Render ----------------------------------------------------------
         sensors = _build_sensor_packet(robot, encoders, imu, rangefinders, sim_time)
-        renderer.draw(robot, sensors, cmd, mode, sim_time, error_msg, rangefinders)
+        renderer.draw(
+            robot, sensors, cmd, mode, sim_time, error_msg,
+            rangefinders=rangefinders, noise_preset=args.noise,
+        )
         renderer.tick(config.fps)
 
     pygame.quit()

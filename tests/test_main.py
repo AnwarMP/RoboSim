@@ -7,7 +7,8 @@ from types import SimpleNamespace
 
 import pygame
 
-from robosim.main import _load_user_script, _read_keyboard
+from robosim.config import NOISE_IDEAL, NOISE_PRESETS, NOISE_REALISTIC, NOISE_STRESS
+from robosim.main import _load_user_script, _parse_args, _read_keyboard
 from robosim.types import DriveCommand, SensorPacket
 
 
@@ -112,7 +113,7 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
         def __init__(self, _config) -> None:
             pass
 
-        def draw(self, _robot, _sensors, _cmd, mode, _sim_time, error_msg, _rf=None) -> None:
+        def draw(self, _robot, _sensors, _cmd, mode, _sim_time, error_msg, **_kw) -> None:
             draw_calls.append((mode, error_msg))
 
         def tick(self, _fps: int) -> None:
@@ -164,8 +165,47 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
     monkeypatch.setattr(main_mod, "RangefinderArray", FakeRangefinderArray)
     monkeypatch.setattr(main_mod, "_load_user_script", lambda: (None, "import failed"))
 
-    main_mod.main()
+    main_mod.main(argv=[])
 
     assert len(draw_calls) == 3
     assert draw_calls[0][1] == "import failed"
     assert draw_calls[1][1] == ""
+
+
+class TestNoisePresets:
+    def test_ideal_preset_is_zero_noise(self) -> None:
+        assert NOISE_IDEAL.gaussian_sigma == 0.0
+        assert NOISE_IDEAL.bias_drift_sigma == 0.0
+
+    def test_realistic_preset_has_nonzero_noise(self) -> None:
+        assert NOISE_REALISTIC.gaussian_sigma > 0.0
+        assert NOISE_REALISTIC.bias_drift_sigma > 0.0
+
+    def test_stress_preset_is_stronger_than_realistic(self) -> None:
+        assert NOISE_STRESS.gaussian_sigma > NOISE_REALISTIC.gaussian_sigma
+        assert NOISE_STRESS.bias_drift_sigma > NOISE_REALISTIC.bias_drift_sigma
+
+    def test_all_presets_in_lookup(self) -> None:
+        assert "ideal" in NOISE_PRESETS
+        assert "realistic" in NOISE_PRESETS
+        assert "stress" in NOISE_PRESETS
+
+
+class TestParseArgs:
+    def test_default_is_ideal(self) -> None:
+        args = _parse_args([])
+        assert args.noise == "ideal"
+
+    def test_realistic_flag(self) -> None:
+        args = _parse_args(["--noise", "realistic"])
+        assert args.noise == "realistic"
+
+    def test_stress_flag(self) -> None:
+        args = _parse_args(["--noise", "stress"])
+        assert args.noise == "stress"
+
+    def test_invalid_noise_raises(self) -> None:
+        import pytest
+
+        with pytest.raises(SystemExit):
+            _parse_args(["--noise", "invalid"])
