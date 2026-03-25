@@ -38,8 +38,10 @@ class Renderer:
         self.arena_cfg = config.arena
         arena_px = self.arena_cfg.arena_size_px
 
-        self.window_w = arena_px + self.SIDEBAR_WIDTH
-        self.window_h = arena_px
+        min_window_w = arena_px + self.SIDEBAR_WIDTH
+        min_window_h = arena_px
+        self.window_w = max(config.width_px, min_window_w)
+        self.window_h = max(config.height_px, min_window_h)
         self.screen = pygame.display.set_mode((self.window_w, self.window_h))
         pygame.display.set_caption("robosim")
 
