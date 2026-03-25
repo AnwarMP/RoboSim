@@ -13,6 +13,7 @@ from robosim.config import SimulatorConfig
 from robosim.physics import PhysicsWorld
 from robosim.renderer import Mode, Renderer
 from robosim.robot import Robot
+from robosim.sensors import EncoderPair
 from robosim.types import DriveCommand, SensorPacket
 
 
@@ -63,14 +64,18 @@ def _read_keyboard() -> DriveCommand:
     )
 
 
-def _build_sensor_packet(robot: Robot, sim_time: float) -> SensorPacket:
-    """Build a basic SensorPacket from current robot state.
+def _build_sensor_packet(
+    robot: Robot, encoders: EncoderPair, sim_time: float
+) -> SensorPacket:
+    """Build a SensorPacket from current robot state.
 
-    Encoders and rangefinders are not yet wired (PRs 4-6); this provides
-    IMU heading/angular velocity so the HUD is not blank.
+    Rangefinders are not yet wired (PR 6); this provides encoders and
+    IMU heading/angular velocity.
     """
     body = robot.world.robot_body
     return SensorPacket(
+        enc_left=encoders.enc_left,
+        enc_right=encoders.enc_right,
         heading_deg=math.degrees(body.angle),
         angular_vel_deg=math.degrees(body.angular_velocity),
         timestamp=sim_time,
@@ -85,6 +90,7 @@ def main() -> None:
 
     world = PhysicsWorld(config)
     robot = Robot(world)
+    encoders = EncoderPair(config.physics)
 
     user_mod, script_load_error = _load_user_script()
     mode = Mode.MANUAL
@@ -111,7 +117,7 @@ def main() -> None:
             cmd = DriveCommand()
             if user_mod is not None and hasattr(user_mod, "run"):
                 try:
-                    sensors = _build_sensor_packet(robot, sim_time)
+                    sensors = _build_sensor_packet(robot, encoders, sim_time)
                     result = user_mod.run(sensors)
                     if isinstance(result, DriveCommand):
                         cmd = result
@@ -126,10 +132,15 @@ def main() -> None:
 
         # -- Update ----------------------------------------------------------
         robot.update(cmd)
+        body = robot.world.robot_body
+        encoders.update(
+            body.velocity, body.angle, body.angular_velocity,
+            config.physics.timestep,
+        )
         sim_time += config.physics.timestep
 
         # -- Render ----------------------------------------------------------
-        sensors = _build_sensor_packet(robot, sim_time)
+        sensors = _build_sensor_packet(robot, encoders, sim_time)
         renderer.draw(robot, sensors, cmd, mode, sim_time, error_msg)
         renderer.tick(config.fps)
 

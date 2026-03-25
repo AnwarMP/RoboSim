@@ -118,9 +118,18 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
         def tick(self, _fps: int) -> None:
             pass
 
+    class FakeVec2d:
+        def __init__(self, x: float = 0.0, y: float = 0.0) -> None:
+            self.x, self.y = x, y
+
+        def dot(self, _other: object) -> float:
+            return 0.0
+
     class FakeWorld:
         def __init__(self, _config) -> None:
-            self.robot_body = SimpleNamespace(angle=0.0, angular_velocity=0.0)
+            self.robot_body = SimpleNamespace(
+                angle=0.0, angular_velocity=0.0, velocity=FakeVec2d()
+            )
 
     class FakeRobot:
         def __init__(self, world: FakeWorld) -> None:
@@ -142,7 +151,7 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
     monkeypatch.setattr(main_mod, "PhysicsWorld", FakeWorld)
     monkeypatch.setattr(main_mod, "Robot", FakeRobot)
     monkeypatch.setattr(main_mod, "_read_keyboard", lambda: DriveCommand())
-    monkeypatch.setattr(main_mod, "_build_sensor_packet", lambda _r, t: SensorPacket(timestamp=t))
+    monkeypatch.setattr(main_mod, "_build_sensor_packet", lambda _r, _e, t: SensorPacket(timestamp=t))
     monkeypatch.setattr(main_mod, "_load_user_script", lambda: (None, "import failed"))
 
     main_mod.main()
