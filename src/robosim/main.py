@@ -16,21 +16,23 @@ from robosim.robot import Robot
 from robosim.types import DriveCommand, SensorPacket
 
 
-def _load_user_script() -> object | None:
-    """Try to import user_script from the current working directory."""
+def _load_user_script() -> tuple[object | None, str]:
+    """Import or reload user_script from cwd, returning (module, error message)."""
     script_path = Path.cwd() / "user_script.py"
     if not script_path.exists():
-        return None
+        return None, "user_script.py not found"
     # Ensure cwd is on sys.path so the import works
     cwd_str = str(Path.cwd())
     if cwd_str not in sys.path:
         sys.path.insert(0, cwd_str)
     try:
-        mod = importlib.import_module("user_script")
-        importlib.reload(mod)  # pick up latest edits
-        return mod
-    except Exception:
-        return None
+        if "user_script" in sys.modules:
+            mod = importlib.reload(sys.modules["user_script"])
+        else:
+            mod = importlib.import_module("user_script")
+        return mod, ""
+    except Exception as exc:
+        return None, f"user_script import failed: {exc.__class__.__name__}: {exc}"
 
 
 def _read_keyboard() -> DriveCommand:
@@ -49,11 +51,11 @@ def _read_keyboard() -> DriveCommand:
 
     # Turn left / right (differential)
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        left -= 0.5
-        right += 0.5
-    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         left += 0.5
         right -= 0.5
+    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        left -= 0.5
+        right += 0.5
 
     return DriveCommand(
         left_power=max(-1.0, min(1.0, left)),
@@ -84,7 +86,7 @@ def main() -> None:
     world = PhysicsWorld(config)
     robot = Robot(world)
 
-    user_mod = _load_user_script()
+    user_mod, script_load_error = _load_user_script()
     mode = Mode.MANUAL
     sim_time = 0.0
     error_msg = ""
@@ -103,6 +105,7 @@ def main() -> None:
 
         # -- Drive command ---------------------------------------------------
         if mode is Mode.MANUAL:
+            error_msg = ""
             cmd = _read_keyboard()
         else:
             cmd = DriveCommand()
@@ -119,7 +122,7 @@ def main() -> None:
                     error_msg = str(exc)[:120]
                     cmd = DriveCommand()
             else:
-                error_msg = "No user_script.run() found"
+                error_msg = script_load_error or "No user_script.run() found"
 
         # -- Update ----------------------------------------------------------
         robot.update(cmd)
