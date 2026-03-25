@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pymunk
 
 from robosim.config import COLLISION_ROBOT, SimulatorConfig
@@ -14,6 +16,7 @@ class PhysicsWorld:
     def __init__(self, config: SimulatorConfig) -> None:
         self.physics_cfg = config.physics
         self.arena_cfg = config.arena
+        self.start_cfg = config.start
 
         # Create and configure the Pymunk space
         self.space = pymunk.Space()
@@ -23,7 +26,7 @@ class PhysicsWorld:
         # Build arena walls
         self.arena = Arena(self.arena_cfg, self.space)
 
-        # Create robot body at center of arena
+        # Create robot body at configured start position
         self.robot_body, self.robot_shape = self._create_robot()
 
         # Resolve torque gain (auto-calculate from moment if not provided)
@@ -37,10 +40,10 @@ class PhysicsWorld:
         return self._torque_gain
 
     def _create_robot(self) -> tuple[pymunk.Body, pymunk.Poly]:
-        """Create the robot rigid body and collision shape at arena center."""
+        """Create the robot rigid body and collision shape at start position."""
         body = pymunk.Body()
-        center = self.arena_cfg.arena_size_px / 2.0
-        body.position = (center, center)
+        body.position = (self.start_cfg.x, self.start_cfg.y)
+        body.angle = math.radians(self.start_cfg.heading_deg)
 
         w, h = self.physics_cfg.robot_size_px
         shape = pymunk.Poly.create_box(body, (w, h))

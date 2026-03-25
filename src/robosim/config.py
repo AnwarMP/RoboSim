@@ -54,12 +54,20 @@ class PhysicsConfig:
 
 
 @dataclass(frozen=True)
+class StartConfig:
+    x: float = 324.0  # Center of 648px arena
+    y: float = 324.0
+    heading_deg: float = 0.0  # Facing right (angle=0 in Y-down)
+
+
+@dataclass(frozen=True)
 class SimulatorConfig:
     width_px: int = 900
     height_px: int = 700
     fps: int = 60
     arena: ArenaConfig = field(default_factory=ArenaConfig)
     physics: PhysicsConfig = field(default_factory=PhysicsConfig)
+    start: StartConfig = field(default_factory=StartConfig)
     encoder_noise: NoiseConfig = field(default_factory=NoiseConfig)
     imu_noise: NoiseConfig = field(default_factory=NoiseConfig)
     range_noise: NoiseConfig = field(default_factory=NoiseConfig)

@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> None:
 
     world = PhysicsWorld(config)
     robot = Robot(world)
-    encoders = EncoderPair(config.physics)
+    encoders = EncoderPair(config.physics, noise_cfg=config.encoder_noise)
     imu = IMU(world.robot_body.angle, config.imu_noise)
     rangefinders = RangefinderArray(
         config.physics.robot_size_px, config.range_noise, world.robot_shape

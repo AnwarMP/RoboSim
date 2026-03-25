@@ -6,7 +6,8 @@ import math
 
 from pymunk import Vec2d
 
-from robosim.config import PhysicsConfig
+from robosim.config import NoiseConfig, PhysicsConfig
+from robosim.sensors.noise import NoisePipeline
 
 
 # Default ticks per full wheel revolution (geared DC motor)
@@ -26,9 +27,14 @@ class WheelEncoder:
     reflect the reduced (or zero) motion.
     """
 
-    def __init__(self, ticks_per_rev: float = DEFAULT_TICKS_PER_REV) -> None:
+    def __init__(
+        self,
+        ticks_per_rev: float = DEFAULT_TICKS_PER_REV,
+        noise_cfg: NoiseConfig | None = None,
+    ) -> None:
         self.ticks_per_rev = ticks_per_rev
         self._accumulator: float = 0.0
+        self._noise = NoisePipeline(noise_cfg) if noise_cfg else None
 
     @property
     def ticks(self) -> int:
@@ -48,7 +54,10 @@ class WheelEncoder:
         distance_px = wheel_speed_px_s * dt
         # revolutions at unit-radius wheel
         revolutions = distance_px / (2.0 * math.pi)
-        self._accumulator += revolutions * self.ticks_per_rev
+        tick_delta = revolutions * self.ticks_per_rev
+        if self._noise is not None:
+            tick_delta = self._noise.apply(tick_delta, dt)
+        self._accumulator += tick_delta
 
     def reset(self) -> None:
         self._accumulator = 0.0
@@ -68,10 +77,11 @@ class EncoderPair:
         self,
         physics_cfg: PhysicsConfig,
         ticks_per_rev: float = DEFAULT_TICKS_PER_REV,
+        noise_cfg: NoiseConfig | None = None,
     ) -> None:
         self._half_base = physics_cfg.wheel_base_px / 2.0
-        self.left = WheelEncoder(ticks_per_rev)
-        self.right = WheelEncoder(ticks_per_rev)
+        self.left = WheelEncoder(ticks_per_rev, noise_cfg)
+        self.right = WheelEncoder(ticks_per_rev, noise_cfg)
 
     def update(
         self,
