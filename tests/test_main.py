@@ -151,7 +151,7 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
     monkeypatch.setattr(main_mod, "PhysicsWorld", FakeWorld)
     monkeypatch.setattr(main_mod, "Robot", FakeRobot)
     monkeypatch.setattr(main_mod, "_read_keyboard", lambda: DriveCommand())
-    monkeypatch.setattr(main_mod, "_build_sensor_packet", lambda _r, _e, t: SensorPacket(timestamp=t))
+    monkeypatch.setattr(main_mod, "_build_sensor_packet", lambda _r, _e, _i, t: SensorPacket(timestamp=t))
     monkeypatch.setattr(main_mod, "_load_user_script", lambda: (None, "import failed"))
 
     main_mod.main()
