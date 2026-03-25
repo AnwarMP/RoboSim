@@ -112,7 +112,7 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
         def __init__(self, _config) -> None:
             pass
 
-        def draw(self, _robot, _sensors, _cmd, mode, _sim_time, error_msg) -> None:
+        def draw(self, _robot, _sensors, _cmd, mode, _sim_time, error_msg, _rf=None) -> None:
             draw_calls.append((mode, error_msg))
 
         def tick(self, _fps: int) -> None:
@@ -130,12 +130,21 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
             self.robot_body = SimpleNamespace(
                 angle=0.0, angular_velocity=0.0, velocity=FakeVec2d()
             )
+            self.robot_shape = SimpleNamespace()
+            self.space = SimpleNamespace()
 
     class FakeRobot:
         def __init__(self, world: FakeWorld) -> None:
             self.world = world
 
         def update(self, _cmd: DriveCommand) -> None:
+            pass
+
+    class FakeRangefinderArray:
+        def __init__(self, _size, _noise, _shape) -> None:
+            pass
+
+        def update(self, _body, _space, _dt) -> None:
             pass
 
     events = [
@@ -151,7 +160,8 @@ def test_main_clears_auto_error_when_switching_back_to_manual(monkeypatch) -> No
     monkeypatch.setattr(main_mod, "PhysicsWorld", FakeWorld)
     monkeypatch.setattr(main_mod, "Robot", FakeRobot)
     monkeypatch.setattr(main_mod, "_read_keyboard", lambda: DriveCommand())
-    monkeypatch.setattr(main_mod, "_build_sensor_packet", lambda _r, _e, _i, t: SensorPacket(timestamp=t))
+    monkeypatch.setattr(main_mod, "_build_sensor_packet", lambda _r, _e, _i, _rf, t: SensorPacket(timestamp=t))
+    monkeypatch.setattr(main_mod, "RangefinderArray", FakeRangefinderArray)
     monkeypatch.setattr(main_mod, "_load_user_script", lambda: (None, "import failed"))
 
     main_mod.main()

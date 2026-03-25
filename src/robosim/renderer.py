@@ -7,8 +7,10 @@ from enum import Enum, auto
 
 import pygame
 
-from robosim.config import SimulatorConfig
+from robosim.config import PX_PER_CM, SimulatorConfig
 from robosim.robot import Robot
+from robosim.sensors import RangefinderArray
+from robosim.sensors.rangefinder import MAX_RANGE_CM
 from robosim.types import DriveCommand, SensorPacket
 
 # Colours
@@ -18,6 +20,10 @@ COL_WALL = (180, 210, 255)
 COL_ROBOT = (60, 160, 80)
 COL_HEADING = (255, 255, 255)
 COL_SIDEBAR_BG = (30, 30, 30)
+COL_RAY_FRONT = (255, 80, 80)
+COL_RAY_RIGHT = (80, 200, 80)
+COL_RAY_BACK = (255, 220, 60)
+COL_RAY_LEFT = (80, 220, 255)
 COL_TEXT = (200, 200, 200)
 COL_MODE_MANUAL = (100, 200, 255)
 COL_MODE_AUTO = (255, 180, 60)
@@ -56,10 +62,13 @@ class Renderer:
         mode: Mode,
         sim_time: float,
         error_msg: str = "",
+        rangefinders: RangefinderArray | None = None,
     ) -> None:
         self.screen.fill(COL_BG)
         self._draw_grid()
         self._draw_walls(robot)
+        if rangefinders is not None:
+            self._draw_rangefinder_rays(rangefinders)
         self._draw_robot(robot)
         self._draw_sidebar(sensors, cmd, mode, sim_time, error_msg)
         pygame.display.flip()
@@ -83,6 +92,36 @@ class Renderer:
             a = (int(wall.a.x), int(wall.a.y))
             b = (int(wall.b.x), int(wall.b.y))
             pygame.draw.line(self.screen, COL_WALL, a, b, 3)
+
+    # -- Rangefinder rays ----------------------------------------------------
+
+    def _draw_rangefinder_rays(self, rangefinders: RangefinderArray) -> None:
+        arena_px = self.arena_cfg.arena_size_px
+        clip_rect = pygame.Rect(0, 0, arena_px, arena_px)
+        self.screen.set_clip(clip_rect)
+
+        colours = [COL_RAY_FRONT, COL_RAY_RIGHT, COL_RAY_BACK, COL_RAY_LEFT]
+        sensors = [rangefinders.front, rangefinders.right, rangefinders.back, rangefinders.left]
+        for sensor, colour in zip(sensors, colours):
+            start = (int(sensor.ray_start.x), int(sensor.ray_start.y))
+
+            # Compute the actual endpoint: hit point if wall detected, else max range
+            dist_px = sensor.distance_cm * PX_PER_CM
+            ray_vec = sensor.ray_end - sensor.ray_start
+            ray_len = ray_vec.length
+            if ray_len > 0:
+                end_point = sensor.ray_start + ray_vec * (dist_px / ray_len)
+                end = (int(end_point.x), int(end_point.y))
+            else:
+                end = start
+
+            pygame.draw.line(self.screen, colour, start, end, 1)
+
+            # Draw a small dot at the hit point when a wall is detected
+            if sensor.distance_cm < MAX_RANGE_CM:
+                pygame.draw.circle(self.screen, colour, end, 3)
+
+        self.screen.set_clip(None)
 
     # -- Robot drawing -------------------------------------------------------
 
