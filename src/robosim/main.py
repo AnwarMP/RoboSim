@@ -12,7 +12,7 @@ from robosim.config import SimulatorConfig
 from robosim.physics import PhysicsWorld
 from robosim.renderer import Mode, Renderer
 from robosim.robot import Robot
-from robosim.sensors import EncoderPair, IMU
+from robosim.sensors import EncoderPair, IMU, RangefinderArray
 from robosim.types import DriveCommand, SensorPacket
 
 
@@ -64,18 +64,22 @@ def _read_keyboard() -> DriveCommand:
 
 
 def _build_sensor_packet(
-    robot: Robot, encoders: EncoderPair, imu: IMU, sim_time: float
+    robot: Robot,
+    encoders: EncoderPair,
+    imu: IMU,
+    rangefinders: RangefinderArray,
+    sim_time: float,
 ) -> SensorPacket:
-    """Build a SensorPacket from current robot state.
-
-    Rangefinders are not yet wired (PR 6); this provides encoders and
-    IMU heading/angular velocity.
-    """
+    """Build a SensorPacket from current robot state."""
     return SensorPacket(
         enc_left=encoders.enc_left,
         enc_right=encoders.enc_right,
         heading_deg=imu.heading_deg,
         angular_vel_deg=imu.angular_vel_deg,
+        range_front=rangefinders.range_front,
+        range_right=rangefinders.range_right,
+        range_back=rangefinders.range_back,
+        range_left=rangefinders.range_left,
         timestamp=sim_time,
     )
 
@@ -90,6 +94,9 @@ def main() -> None:
     robot = Robot(world)
     encoders = EncoderPair(config.physics)
     imu = IMU(world.robot_body.angle, config.imu_noise)
+    rangefinders = RangefinderArray(
+        config.physics.robot_size_px, config.range_noise, world.robot_shape
+    )
 
     user_mod, script_load_error = _load_user_script()
     mode = Mode.MANUAL
@@ -116,7 +123,7 @@ def main() -> None:
             cmd = DriveCommand()
             if user_mod is not None and hasattr(user_mod, "run"):
                 try:
-                    sensors = _build_sensor_packet(robot, encoders, imu, sim_time)
+                    sensors = _build_sensor_packet(robot, encoders, imu, rangefinders, sim_time)
                     result = user_mod.run(sensors)
                     if isinstance(result, DriveCommand):
                         cmd = result
@@ -137,11 +144,12 @@ def main() -> None:
             config.physics.timestep,
         )
         imu.update(body.angle, body.angular_velocity, config.physics.timestep)
+        rangefinders.update(body, world.space, config.physics.timestep)
         sim_time += config.physics.timestep
 
         # -- Render ----------------------------------------------------------
-        sensors = _build_sensor_packet(robot, encoders, imu, sim_time)
-        renderer.draw(robot, sensors, cmd, mode, sim_time, error_msg)
+        sensors = _build_sensor_packet(robot, encoders, imu, rangefinders, sim_time)
+        renderer.draw(robot, sensors, cmd, mode, sim_time, error_msg, rangefinders)
         renderer.tick(config.fps)
 
     pygame.quit()
